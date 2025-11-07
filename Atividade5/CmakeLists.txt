@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.10)
+# Nome do projeto e linguagem
+project(RenderPPM LANGUAGES CXX)
+
+# Define padrão do C++ (C++11, 14, 17, 20…)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+# Adiciona o executável
+add_executable(render main.cpp)
