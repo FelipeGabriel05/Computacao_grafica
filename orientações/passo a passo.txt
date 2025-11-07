@@ -1,0 +1,40 @@
+computação gráfica 1
+
+Programa usando c++
+
+para executar um arquivo c++ : g++ teste.cpp -o teste.exe
+Criando um arquivo de imagem : 
+	criar um arquivo chamado CmakeList.txt
+		cmake_minimum_required(VERSION 3.10)
+		# Nome do projeto e linguagem
+                project(RenderPPM LANGUAGES CXX)
+
+		# Define padrão do C++ (C++11, 14, 17, 20…)
+		set(CMAKE_CXX_STANDARD 17)
+		set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+		# Adiciona o executável
+		add_executable(render main.cpp)
+
+
+	cmake -B build 
+	cmake --build build
+
+Em seguida execute:  .\build\render.exe > image.ppm
+Para executar compilações otimizadas para maior velocidade: cmake --build build --config release
+E executar assim : build\Release\render.exe > image.ppm
+
+Para converter a imagem ppm em png
+Instale o magick https://imagemagick.org/script/download.php#windows
+Adicione ao PATH (solução definitiva)
+	Abra o menu Iniciar → digite variáveis de ambiente → clique em
+	Editar variáveis de ambiente do sistema.
+	Clique em Variáveis de Ambiente....
+	Em Variáveis do sistema, selecione Path → Editar.
+	Clique em Novo e adicione o caminho: C:\Program Files\ImageMagick-7.1.1-Q16-HDRI\
+	Clique em OK até fechar tudo
+	Feche e abra novamente o CMD/PowerShell.
+
+	Agora rode : magick imagem.ppm image.png
+
+
