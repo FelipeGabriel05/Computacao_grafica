@@ -163,18 +163,18 @@ double hit_cylinder(const Cilindro&  ci, const ray& r) {
 // ----------------------
 // Cone
 // ----------------------
-double hit_Cone(const Cone& co, const ray& r) {
+double hit_Cone(const Cone& co, const ray& r, bool tampa = false) {
     point3 vertice = co.centerB + co.height * co.direcao;
-    vec3 v = vertice - r.origin();
+    vec3 v = r.origin() - vertice;
     double cos_theta2 = (co.height*co.height) / (co.height*co.height + co.radius*co.radius);
 
     auto w = dot(r.direction(), co.direcao);
     auto m = dot(v, co.direcao);
 
     auto a = w*w - dot(r.direction(), r.direction()) * cos_theta2;
-    auto b = dot(v, r.direction()) * cos_theta2 - m * w;    
+    auto b = 2.0f * (m * w - dot(v, r.direction()) * cos_theta2);    
     auto c = m * m - dot(v, v) * cos_theta2;
-    auto discriminante = b*b -  a * c;
+    auto discriminante = b*b -  4 * a * c;
     double t_hit = -1.0;
     if(discriminante < 0){
         return t_hit;
@@ -182,8 +182,8 @@ double hit_Cone(const Cone& co, const ray& r) {
         const double EPS = 1e-12;
         if (std::fabs(a) < EPS) return -1.0;
 
-        double t1 = (-b - std::sqrt(discriminante)) / a;
-        double t2 = (-b + std::sqrt(discriminante)) / a;
+        double t1 = (-b - std::sqrt(discriminante)) / (2*a);
+        double t2 = (-b + std::sqrt(discriminante)) / (2*a);
 
         if (t1 > 0 && t2 > 0)
             t_hit = std::min(t1, t2);     // os dois válidos → pega o mais próximo
@@ -194,8 +194,9 @@ double hit_Cone(const Cone& co, const ray& r) {
     }
 
     point3 P = r.origin() + t_hit * r.direction();
-    double h = dot(vertice - P, co.direcao); // projeção sobre o eixo
+    double h = dot(P - co.centerB, co.direcao); // projeção sobre o eixo
     if (h < 0.0 || h > co.height) return -1.0;
+
     return t_hit;
 }
 
@@ -234,15 +235,26 @@ color calculo_cor(const point3 Pi, const vec3 n,
     return color(std::min(I.x(),1.0), std::min(I.y(),1.0), std::min(I.z(),1.0));
 }
 
-bool shadowRay(const point3 Pi, const Esfera& esf,const Luz& luz) {
+bool shadowRay(const point3 Pi, const Luz& luz, 
+               const Esfera& esf, const Cilindro& ci, const Cone& co){
     vec3 l = unit_vector(luz.P_F - Pi);
     ray shadow_ray(Pi + 0.001 * l, l);
-    // verifica se há algo entre P e a luz
-    bool em_sombra = false;
-    double t_sombra = hit_sphere(esf, shadow_ray);
-    if (t_sombra > 0 && t_sombra < length(luz.P_F - Pi))
-        em_sombra = true;
-    return em_sombra;
+    
+    double dist_luz = length(luz.P_F - Pi);
+
+    double t_s = hit_sphere(esf, shadow_ray);
+    if (t_s > 0 && t_s < dist_luz)
+        return true;
+
+    double t_ci = hit_cylinder(ci, shadow_ray);
+    if (t_ci > 0 && t_ci < dist_luz)
+        return true;
+
+    double t_co = hit_Cone(co, shadow_ray);
+    if (t_co > 0 && t_co < dist_luz)
+        return true;
+
+    return false;
 }
 
 color ray_color(const ray& r, const Esfera& esf, const Plano& plano_chao, const Plano& plano_fundo,
@@ -259,7 +271,7 @@ color ray_color(const ray& r, const Esfera& esf, const Plano& plano_chao, const 
         point3 PI = r.origin() + t_s*r.direction();
         vec3 n = unit_vector(PI - esf.center);
         vec3 v = unit_vector(E - PI);
-        if(shadowRay(PI, esf, luz)) {
+        if(shadowRay(PI, luz, esf, ci, co)) {
             I = esf.mat_esfera.Kamb * luz.I_A;
         } else {
             I =  calculo_cor(PI, n, v, esf.mat_esfera, luz);
@@ -271,7 +283,7 @@ color ray_color(const ray& r, const Esfera& esf, const Plano& plano_chao, const 
         closest_t = t_ch;
         point3 PI = r.origin() + t_ch*r.direction();
         vec3 v = unit_vector(E - PI);
-        if(shadowRay(PI, esf, luz)) {
+        if(shadowRay(PI, luz, esf, ci, co)) {
             I = plano_chao.mat_plano.Kamb * luz.I_A;
         } else {
             I =  calculo_cor(PI, plano_chao.normal, v, plano_chao.mat_plano, luz);
@@ -283,7 +295,7 @@ color ray_color(const ray& r, const Esfera& esf, const Plano& plano_chao, const 
         closest_t = t_f;
         point3 PI = r.origin() + t_f*r.direction();
         vec3 v = unit_vector(E - PI);
-        if(shadowRay(PI, esf, luz)) {
+        if(shadowRay(PI, luz, esf, ci, co)) {
             I = plano_fundo.mat_plano.Kamb * luz.I_A;
         } else {
             I =  calculo_cor(PI, plano_fundo.normal, v, plano_fundo.mat_plano, luz);
@@ -292,11 +304,12 @@ color ray_color(const ray& r, const Esfera& esf, const Plano& plano_chao, const 
 
     double t_ci = hit_cylinder(ci, r);
     if(t_ci > 0 && t_ci < closest_t) {
+        closest_t = t_ci;
         point3 PI = r.origin() + t_ci*r.direction();
         vec3 proj = dot(PI - ci.centerB, ci.direcao) * ci.direcao;
         vec3 n = unit_vector((PI - ci.centerB) - proj);
         vec3 v = unit_vector(E - PI);
-        if(shadowRay(PI, esf, luz)) {
+        if(shadowRay(PI, luz, esf, ci, co)) {
             I = ci.mat_cilindro.Kamb * luz.I_A;
         } else {
             I =  calculo_cor(PI, n, v, ci.mat_cilindro, luz);
@@ -305,19 +318,26 @@ color ray_color(const ray& r, const Esfera& esf, const Plano& plano_chao, const 
 
     double t_co = hit_Cone(co, r);
     if(t_co > 0 && t_co < closest_t) {
+        closest_t = t_co;
         point3 PI = r.origin() + t_co *r.direction();
         vec3 v = unit_vector(E - PI);
-        vec3 n = co.direcao;
+
+        point3 vertice = co.centerB + co.height * co.direcao;
+        double cos_theta2 = (co.height * co.height) / (co.height * co.height + co.radius * co.radius);
+        vec3 v_p = PI - vertice;
+
+        double m = dot(v_p, co.direcao);
+        vec3 n = unit_vector(m * co.direcao - v_p * cos_theta2);
+    
         if (dot(r.direction(), n) > 0) {
             n = -n;
         }
-        if(shadowRay(PI, esf, luz)) {
+
+        if(shadowRay(PI, luz, esf, ci, co)) {
             I = co.mat_cone.Kamb * luz.I_A;
         }else {
             I = calculo_cor(PI, n, v, co.mat_cone, luz);
         }
-        // std::cerr << "t_co = " << t_co
-        //       << " | I = (" << I.x() << ", " << I.y() << ", " << I.z() << ")\n";
     }
     return I;
 }
@@ -393,7 +413,7 @@ int main() {
 
     // -------- Plano do fundo --------
     Plano fundo;
-    fundo.point = point3(0, 0, -2);                     // ponto conhecido do plano do fundo 
+    fundo.point = point3(0, 0, -4);                     // ponto conhecido do plano do fundo 
     fundo.normal = vec3(0, 0, 1);
     fundo.mat_plano = matF;
 
@@ -406,8 +426,8 @@ int main() {
 
     Cone cone;
     cone.direcao = ci.direcao;
-    cone.centerB = ci.centerB + ci.height *ci.direcao;
-    cone.radius = 0.5 * esf.radius;
+    cone.centerB = ci.centerB + ci.height * ci.direcao;
+    cone.radius = 1.5 * esf.radius;
     cone.height = cone.radius/3;
     cone.mat_cone = matCone;
 
@@ -423,7 +443,7 @@ int main() {
             double z = -dJanela;
 
             point3 pixelPos(x,y,z);
-            vec3 dir = pixelPos - E; // direção do raio
+            vec3 dir = unit_vector(pixelPos - E); // direção do raio
             ray r(E, dir);
 
             // Determinar a cor da esfera
