@@ -35,8 +35,22 @@ double hit_Cone(const Cone& co, const ray& r, bool tampa = false) {
 
     point3 P = r.origin() + t_hit * r.direction();
     double h = dot(P - co.centerB, co.direcao); // projeção sobre o eixo
-    if (h < 0.0 || h > co.height) return -1.0;
+    if (h < 0.0 || h > co.height) t_hit = -1.0;
 
+    if (tampa) {
+        // Interseção com a base do cone
+        double denom = dot(co.direcao, r.direction());
+        if (fabs(denom) > 1e-6) {
+            double t_base = dot(co.centerB - r.origin(), co.direcao) / denom;
+            if (t_base > 0) {
+                point3 P_base = r.origin() + t_base * r.direction();
+                if (length(P_base - co.centerB) <= co.radius) {
+                    if (t_hit < 0 || t_base < t_hit)
+                        t_hit = t_base;
+                }
+            }
+        }
+    }
     return t_hit;
 }
 

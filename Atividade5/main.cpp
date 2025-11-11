@@ -2,6 +2,7 @@
 #include "src/material/structs.h"
 #include "src/objects/hit_color.h"
 #include "src/ray/ray.h"
+#include "src/material/plano_cenario.h"
 #include <iostream>
 #include <cmath>
 
@@ -73,6 +74,14 @@ int main() {
         .m = 1.0
     };
 
+    // -------- Planos do cenário --------
+    Plano_cenario planos;
+    planos.chao = chao;
+    planos.paredeLdireito = paredeLdireita;
+    planos.paredeLesquerda = paredeLesquerda;
+    planos.paredeFrontal = paredeFrontal;
+    planos.teto = teto;
+
     Cilindro ci;
     ci.centerB = point3(0.0, -1.5, -2.0);
     ci.radius = 0.05;
@@ -99,7 +108,7 @@ int main() {
 
     Esfera esf;
     esf.center = point3(0.0, 0.95, -2.0);
-    esf.radius = 0.5;
+    esf.radius = 0.05;
     esf.mat_esfera = {
         .Kamb = color(0.854, 0.647, 0.125),
         .Kdif = color(0.854, 0.647, 0.125),
@@ -129,7 +138,7 @@ int main() {
             ray r(E, dir);
 
             // Determinar a cor da esfera
-            color pixel_color = ray_color(r, esf, chao, fundo, luz, E, bgColor, ci, cone);
+            color pixel_color = ray_color(r, esf,  ci, cone, planos, luz, E);
 
             // Converter para [0,255]
             int ir = int(255.999 * pixel_color.x());

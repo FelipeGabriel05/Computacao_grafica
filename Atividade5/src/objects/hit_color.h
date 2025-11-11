@@ -1,8 +1,10 @@
 #ifndef HIT_COLOR_H
 #define HIT_COLOR_H
 #include "../material/structs.h"
+#include "../material/plano_cenario.h"
 #include "../ray/ray.h"
 #include "../colors/color.h"
+#include "hit_plano.h"
 #include "cilindro.h"
 #include "cone.h"
 #include "plano.h"
@@ -11,32 +13,32 @@
 bool shadowRay(const point3 Pi, const Luz& luz, 
                const Esfera& esf, const Cilindro& ci, const Cone& co){
     vec3 l = unit_vector(luz.P_F - Pi);
-    ray shadow_ray(Pi + 0.001 * l, l);
-    
     double dist_luz = length(luz.P_F - Pi);
+    ray shadow_ray(Pi + 0.01 * l, l);
+    
 
     double t_s = hit_sphere(esf, shadow_ray);
-    if (t_s > 0 && t_s < dist_luz)
+    if (t_s > 1e-4 && t_s < dist_luz - 1e-4)
         return true;
 
     double t_ci = hit_cylinder(ci, shadow_ray);
-    if (t_ci > 0 && t_ci < dist_luz)
+    if (t_ci > 1e-4 && t_ci < dist_luz - 1e-4)
         return true;
 
-    double t_co = hit_Cone(co, shadow_ray);
-    if (t_co > 0 && t_co < dist_luz)
+    double t_co = hit_Cone(co, shadow_ray, true);
+    if (t_co > 1e-4 && t_co < dist_luz - 1e-4)
         return true;
 
     return false;
 }
 
-color ray_color(const ray& r, const Esfera& esf, const Plano& plano_chao, const Plano& plano_fundo,
-                const Luz& luz,const point3& E, color bgColor, const Cilindro& ci, const Cone& co
-            ){
+color ray_color(const ray& r, const Esfera& esf, const Cilindro& ci, const Cone& co, 
+                const Plano_cenario& planos, const Luz& luz, const point3& E 
+    ){
     // retorna o escalar
     double t_max = 1e30;
     double closest_t = t_max;
-    color I = bgColor;
+    color I;
 
     double t_s = hit_sphere(esf, r);
     if(t_s > 0 && t_s < closest_t) {
@@ -51,27 +53,17 @@ color ray_color(const ray& r, const Esfera& esf, const Plano& plano_chao, const 
         }
     }
 
-    double t_ch = Cplano(plano_chao, r);
-    if(t_ch > 0 && t_ch < closest_t) {
-        closest_t = t_ch;
-        point3 PI = r.origin() + t_ch*r.direction();
+    // recebe um dos 5 planos e já retorna o menor deles
+    Hit_plano t_planos = hit_plano(closest_t, planos, r);
+    if(t_planos.t > 0 && t_planos.t != closest_t) {
+        closest_t = t_planos.t;
+        point3 PI = r.origin() + t_planos.t*r.direction();
         vec3 v = unit_vector(E - PI);
+        const Plano* plano_escolhido = t_planos.plano; 
         if(shadowRay(PI, luz, esf, ci, co)) {
-            I = plano_chao.mat_plano.Kamb * luz.I_A;
+            I = plano_escolhido->mat_plano.Kamb * luz.I_A;
         } else {
-            I =  calculo_cor(PI, plano_chao.normal, v, plano_chao.mat_plano, luz);
-        }
-    }
-
-    double t_f = Cplano(plano_fundo, r);
-    if(t_f > 0 && t_f < closest_t) {
-        closest_t = t_f;
-        point3 PI = r.origin() + t_f*r.direction();
-        vec3 v = unit_vector(E - PI);
-        if(shadowRay(PI, luz, esf, ci, co)) {
-            I = plano_fundo.mat_plano.Kamb * luz.I_A;
-        } else {
-            I =  calculo_cor(PI, plano_fundo.normal, v, plano_fundo.mat_plano, luz);
+            I =  calculo_cor(PI, plano_escolhido->normal, v, plano_escolhido->mat_plano, luz);
         }
     }
 
@@ -89,7 +81,7 @@ color ray_color(const ray& r, const Esfera& esf, const Plano& plano_chao, const 
         }
     }
 
-    double t_co = hit_Cone(co, r);
+    double t_co = hit_Cone(co, r, true);
     if(t_co > 0 && t_co < closest_t) {
         closest_t = t_co;
         point3 PI = r.origin() + t_co *r.direction();
