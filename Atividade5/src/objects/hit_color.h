@@ -9,6 +9,10 @@
 #include "cone.h"
 #include "plano.h"
 #include "esfera.h"
+#include "../malha/list_mesh.h"
+#include "../malha/cube_mesh.h"
+#include "../malha/hit_malha.h"
+#include "hit_triangulo.h"
 
 bool shadowRay(const point3 Pi, const Luz& luz, 
                const Esfera& esf, const Cilindro& ci, const Cone& co){
@@ -32,7 +36,7 @@ bool shadowRay(const point3 Pi, const Luz& luz,
     return false;
 }
 
-color ray_color(const ray& r, const Esfera& esf, const Cilindro& ci, const Cone& co, 
+color ray_color(const ray& r, const Esfera& esf, const Cilindro& ci, const Cone& co, const Cubo& cube, const ListMesh& L,
                 const Plano_cenario& planos, const Luz& luz, const point3& E 
     ){
     // retorna o escalar
@@ -104,6 +108,34 @@ color ray_color(const ray& r, const Esfera& esf, const Cilindro& ci, const Cone&
             I = calculo_cor(PI, n, v, co.mat_cone, luz);
         }
     }
+
+    int id_face;
+    double t_cube = hit_malha(r, L, id_face);
+    if(t_cube > 0 && t_cube < closest_t) {
+        closest_t = t_cube;
+        point3 PI = r.origin() + t_cube * r.direction();
+        const LstFace& f = L.faces()[id_face];
+        int i0 = f.verts()[0];
+        int i1 = f.verts()[1];
+        int i2 = f.verts()[2];
+
+        vec3 P1 = L.vertices()[i0].pos();
+        vec3 P2 = L.vertices()[i1].pos();
+        vec3 P3 = L.vertices()[i2].pos();
+
+        vec3 normal = unit_vector(cross(P2 - P1, P3 - P1));
+        if (dot(normal, r.direction()) > 0) {
+            normal = -normal;
+        }
+        
+        vec3 v = unit_vector(E - PI);
+        if(shadowRay(PI, luz, esf, ci, co)) {
+            I = cube.mat_cubo.Kamb * luz.I_A;
+        } else {
+            I =  calculo_cor(PI, normal, v, cube.mat_cubo, luz);
+        }
+    }
+    
     return I;
 }
 

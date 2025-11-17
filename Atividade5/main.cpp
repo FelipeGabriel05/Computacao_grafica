@@ -116,6 +116,17 @@ int main() {
         .m = 10.0
     };
 
+    Cubo cube;
+    cube.aresta = 0.4;
+    cube.centerCubo = point3(0.0, -1.5, -1.65);
+    cube.mat_cubo = {
+        .Kamb = color(1.0, 0.078, 0.576),
+        .Kdif = color(1.0, 0.078, 0.576),
+        .Kesp = color(1.0, 0.078, 0.576),
+        .m = 10.0
+    };
+    ListMesh L = MakeCubeMesh(cube);                // malha do cubo
+
     // -------- Luz --------
     Luz luz;
     luz.P_F = vec3(-1.0, 1.4, -0.2);                       // Posição da fonte pontual situada a 60 cm acima do olho do observador
@@ -138,7 +149,7 @@ int main() {
             ray r(E, dir);
 
             // Determinar a cor da esfera
-            color pixel_color = ray_color(r, esf,  ci, cone, planos, luz, E);
+            color pixel_color = ray_color(r, esf,  ci, cone, cube, L, planos, luz, E);
 
             // Converter para [0,255]
             int ir = int(255.999 * pixel_color.x());

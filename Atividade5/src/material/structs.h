@@ -45,4 +45,10 @@ struct Cilindro {
     Material mat_cilindro;
 };
 
+struct Cubo {
+    point3 centerCubo;
+    double aresta;
+    Material mat_cubo;
+};
+
 #endif
