@@ -42,7 +42,7 @@ rule CUSTOM_COMMAND
 # Rule for re-running cmake.
 
 rule RERUN_CMAKE
-  command = C:\mingw64\bin\cmake.exe --regenerate-during-build -S"C:\Users\Felipe Gabriel\Documents\CiênciaComputação\4_semestre\cg1\Atividade5" -B"C:\Users\Felipe Gabriel\Documents\CiênciaComputação\4_semestre\cg1\Atividade5\build"
+  command = C:\mingw64\bin\cmake.exe --regenerate-during-build -S"C:\Users\Felipe Gabriel\Documents\CienciaComputacao\4_semestre\refatoracao" -B"C:\Users\Felipe Gabriel\Documents\CienciaComputacao\4_semestre\refatoracao\build"
   description = Re-running CMake...
   generator = 1
 

@@ -1,28 +1,24 @@
 #ifndef COLOR_H
 #define COLOR_H
+
 #include "../vectors/vec3.h"
-#include "../material/structs.h"
+#include <iostream>
 
 using color = vec3;
-color calculo_cor(const point3 Pi, const vec3 n, 
-                    const vec3 v, const Material& mat, const Luz& luz) {
-    
-    vec3 l = unit_vector(luz.P_F - Pi);                 // Vetor da superfície até a luz
-    vec3 r = unit_vector(2 * dot(l, n) * n - l);
 
-    // Reflexão difusa 
-    double ln = std::max(0.0, dot(l, n));
-    color I_d = luz.I_F * mat.Kdif * ln;
+void write_color(std::ostream& out, const color& pixel_color) {
+    auto r = pixel_color.x();
+    auto g = pixel_color.y();
+    auto b = pixel_color.z();
 
-    // Reflexão especular: (I_F @ K) * (v . r)^m
-    double vr = std::max(0.0, dot(v, r));
-    color I_e = luz.I_F * mat.Kesp * pow(vr, mat.m);
+    // Escreva os valores no intervalo [0,1] para o valor de um byte
+    // [0,255]
+    int rbyte = int(255.999 * r);
+    int gbyte = int(255.999 * g);
+    int bbyte = int(255.999 * b);
 
-    color I_amb = mat.Kamb * luz.I_A; 
- 
-    // Soma total da iluminação 
-    color I = I_amb + I_d + I_e;
-    return color(std::min(I.x(),1.0), std::min(I.y(),1.0), std::min(I.z(),1.0));
+    // Write out the pixel color components.
+    out << rbyte << ' ' << gbyte << ' ' << bbyte << '\n';
 }
 
 #endif
