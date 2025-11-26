@@ -7,6 +7,7 @@
 #include "../objects/hittable.h"
 #include <memory>
 
+// Cria um cubo perfeito
 class cube_mesh : public hittable{
     public:
         cube_mesh(

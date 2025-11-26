@@ -4,13 +4,11 @@
 #include "src/colors/color.h"
 #include "src/objects/hittable.h"
 #include "src/objects/hittable_lists.h"
-#include "src/material/material.h"
-#include "src/objects/sphere.h"
 #include "src/objects/plane.h"
-#include "src/objects/cone.h"
-#include "src/objects/cilindro.h"
-#include "src/malha/cube_mesh.h"
-#include "src/texture/texture.h"
+#include "src/cenario/materiais_cenario.h"
+#include "src/cenario/objetos_cenario.h"
+#include "src/cenario/arvore_natal.h"
+#include "src/cenario/mesa.h"
 
 // reflete v em torno de n
 vec3 reflect(const vec3& v, const vec3& n) {
@@ -77,69 +75,17 @@ int main() {
     point3 E(0,0,0);                // Olho do pintor     
 
     hittable_list world;
-
-    auto material_esfera = std::make_shared<material>(
-        // coeficiente ambiente
-        color(0.854, 0.647, 0.125),
-        // coeficiente difuso
-        color(0.854, 0.647, 0.125),
-        // coeficiente especular
-        color(0.854, 0.647, 0.125),
-        // expoente especular
-        50
-    );
-    double R_esfera = 5;
-    point3 C_esfera = point3(0, 95, -200);
-    world.add(
-        make_shared<sphere>(C_esfera, R_esfera, material_esfera)
-    );
-
-    auto material_plano1 = std::make_shared<material>(
-        color(0.686, 0.933, 0.933), color(0.686, 0.933, 0.933), color(0.686, 0.933, 0.933), 10
-    );
-
-
-    auto tex_chao =
-    std::make_shared<image_texture>("madeira.jpg");
-    // material com textura
-    auto material_chao = std::make_shared<material>(
-        color(.1,.1,.1),
-        color(1,1,1),
-        color(0,0,0),
-        0,
-        tex_chao
-    );
-
-    auto material_teto = std::make_shared<material>(
-        color(0.933, 0.933, 0.933), color(0.933, 0.933, 0.933), color(0.933, 0.933, 0.933), 1.0  
-    );
-
-    auto material_cube = std::make_shared<material>(
-        color(1.0, 0.078, 0.576), color(1.0, 0.078, 0.576), color(1.0, 0.078, 0.576), 1.0 
-    );
-
-    // renderiza o cubo
-    world.add(make_shared<cube_mesh>(40,point3(0, -150, -165),material_cube));
-
-
-    auto material_cone = std::make_shared<material>(
-        color(0.0, 1.0, 0.498), color(0.0, 1.0, 0.498), color(0.0, 1.0, 0.498), 1
-    );
-    world.add(make_shared<cone>(point3(0, -60, -200), vec3(0, 1, 0), 150, 90, true, material_cone));
-
-    auto material_cilindro = std::make_shared<material>(
-        color(0.824, 0.706, 0.549), color(0.824, 0.706, 0.549), color(0.824, 0.706, 0.549), 1
-    );
-    world.add(make_shared<cilindro>(point3(0, -150, -200), vec3(0, 1, 0), 90, 5, false, false, material_cilindro));
-
+    tree_data arvore = criar_arvore();
+    world.add(make_shared<tree>(arvore));
+    
+    table_data m = criar_mesa();
+    world.add(make_shared<mesa>(m));
     // Planos do cenário
     world.add(make_shared<plane>(point3(0.0, -150, 0.0), vec3(0.0, 1.0, 0.0), material_chao));
     world.add(make_shared<plane>(point3(200, -150, 0.0), vec3(-1.0, 0.0, 0.0), material_plano1));
     world.add(make_shared<plane>(point3(200, -150, -400), vec3(0.0, 0.0, 1.0), material_plano1));
     world.add(make_shared<plane>(point3(-200, -150, 0.0), vec3(1.0, 0.0, 0.0), material_plano1));
     world.add(make_shared<plane>(point3(0.0, 150, 0.0), vec3(0.0, -1.0, 0.0), material_teto));
-
-    vec3 dr = vec3(-1.0/sqrt(3.0), 1.0/sqrt(3.0), -1.0/sqrt(3.0));
 
     // PPM header
     std::cout << "P3\n" << nCol << " " << nLin << "\n255\n";
